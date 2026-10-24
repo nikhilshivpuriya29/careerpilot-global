@@ -1,0 +1,50 @@
+name = "CareerPilot — Global Salesforce Jobs"
+[auth]
+enabled = true
+providers = ["email"]
+
+[ai]
+required = true
+description = "AI-powered job relevance scoring, job-description analysis, and fact-grounded resume tailoring."
+
+[db.tables.candidate_profiles]
+read = "own"
+write = "own"
+
+[db.tables.applications]
+read = "own"
+write = "own"
+
+[db.tables.job_matches]
+read = "own"
+write = "own"
+
+[db.tables.submission_attempts]
+read = "own"
+write = "own"
+
+[db.tables.automation_runs]
+read = "own"
+write = "own"
+
+[[secret]]
+name = "ADZUNA_APP_ID"
+required = true
+description = "Adzuna API application ID for global job discovery. Add in Hatchable project Setup; never place the value in source code."
+
+[[secret]]
+name = "ADZUNA_APP_KEY"
+required = true
+description = "Adzuna API key for global job discovery. Add in Hatchable project Setup; never place the value in source code."
+
+[[cron]]
+path = "/api/jobs/daily-discovery"
+schedule = "0 2 * * *"
+
+[[cron]]
+path = "/api/jobs/score-batch"
+schedule = "0 3 * * *"
+
+[[cron]]
+path = "/api/jobs/freehire-discovery"
+schedule = "30 2 * * *"
