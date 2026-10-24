@@ -1,0 +1,30 @@
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+
+# Dependencies and generated artifacts
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.tmp/
+.DS_Store
+
+# Local data and candidate records
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+uploads/
+resumes/
+candidate-data/
+applications-export/
