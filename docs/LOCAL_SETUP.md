@@ -96,6 +96,7 @@ Do not merely replace the database URL and assume the app is portable. Keep rout
 - **LinkedIn:** guest search is a separately gated, risk-bearing feature. Verify the exact code and policy in the branch before enabling it; do not use credentials, session cookies, CAPTCHA bypass, stealth or proxy rotation. Stop if LinkedIn blocks requests. Do not assume this feature is authorized by LinkedIn.
 - **Application submission:** manual handoff only unless a reviewed, supported adapter is explicitly implemented. Never claim a submission succeeded without verifiable confirmation.
 - **Security:** the security plan lists additional integration and ownership tests. A passing smoke test is not a security certification.
+- **Current validator warning:** the host's deploy linter reports that `api/applications/prepare.js` queries a missing `linkedin` table. Inspection shows the route joins `linkedin_job_intakes` (the table declared in this project), so this appears to be a substring-based false positive. Confirm against the current host validator/runtime before ignoring it; do not create an unrelated `linkedin` table just to silence the warning.
 
 ## 8. Safe contribution workflow
 
