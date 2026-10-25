@@ -5,7 +5,8 @@ providers = ["email"]
 
 [ai]
 required = true
-description = "AI-powered job relevance scoring, job-description analysis, and fact-grounded resume tailoring."
+providers = ["anthropic"]
+description = "AI-powered job relevance scoring, job-description analysis, and fact-grounded resume tailoring. CareerPilot uses the Anthropic provider for the Sonnet model; configure its credential through Hatchable AI settings."
 
 [db.tables.candidate_profiles]
 read = "own"
