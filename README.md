@@ -42,3 +42,15 @@ Read [SECURITY.md](SECURITY.md) before contributing. Security features are a wor
 - Do not automate a site's application process unless the integration is permitted and tested.
 - Never fabricate skills, experience, education, work authorization, or sponsorship.
 - Review every application package before submitting it.
+
+
+## Guides
+
+- [Complete user guide](docs/USER_GUIDE.md) — app navigation, job discovery, fit scores, LinkedIn options, resume tailoring, application tracking, integrations, privacy, and troubleshooting.
+- [Local setup and self-hosting guide](docs/LOCAL_SETUP.md) — clone instructions for Windows, macOS and Linux; Hatchable deployment steps; required configuration; portability blockers for other cloud providers.
+
+## Deployment and portability notes
+
+The current application targets Hatchable's runtime and SDK. It is not yet a generic Node.js app that can be run with `npm start` or deployed unchanged to AWS, Azure, GCP, Docker, or another host. The guides describe the exact boundary and the work needed to port it. Do not assume a local standalone run is supported until a platform adapter and its tests exist.
+
+The LinkedIn public guest-search modes are gated and can be disabled by user preferences or the global control. They may be subject to third-party platform terms and blocking; manual job intake remains an alternative. Application submission defaults to manual handoff unless a reviewed integration verifies submission.
