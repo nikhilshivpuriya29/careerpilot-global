@@ -13,7 +13,7 @@ export default async function(req,res) {
   if(!Number.isInteger(id)||id<1) return res.status(400).json({error:'Valid application_id required.'});
   const limit=await enforceUserRateLimit(db,uid,'review-application',6);if(!limit.allowed)return res.status(429).json({error:'Application review rate limit reached. Retry in the next minute.',retry_after_seconds:limit.retryAfterSeconds});
   const q=await db.query(
-    'SELECT a.id,a.status,a.resume_version,a.cover_letter,a.notes,j.title,j.company,j.description,j.source_url,j.country FROM applications a JOIN job_leads j ON j.id=a.job_id WHERE a.id=$1 AND a.user_id=$2',
+    "SELECT a.id,a.status,a.resume_version,a.cover_letter,a.notes,COALESCE(j.title,l.title) AS title,COALESCE(j.company,l.company) AS company,COALESCE(j.description,l.description) AS description,COALESCE(j.source_url,l.canonical_url) AS source_url,COALESCE(j.country,l.location) AS country FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id LEFT JOIN linkedin_job_intakes l ON l.id=a.linkedin_intake_id AND l.user_id=a.user_id WHERE a.id=$1 AND a.user_id=$2 AND (j.id IS NOT NULL OR l.id IS NOT NULL)",
     [id,uid]
   );
   if(!q.rows.length) return res.status(404).json({error:'Application or linked job not found.'});

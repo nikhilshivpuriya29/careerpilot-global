@@ -7,7 +7,7 @@ export default async function(req,res) {
  const uid=String(req.user.id),id=Number((req.body||{}).application_id);
  if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'A valid application_id is required.'});
  const limit=await enforceUserRateLimit(db,uid,'inspect-form',8);if(!limit.allowed)return res.status(429).json({error:'ATS inspection rate limit reached. Retry in the next minute.',retry_after_seconds:limit.retryAfterSeconds});
- const q=await db.query('SELECT a.id,a.status,a.application_url,j.source_url,j.title,j.company FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id WHERE a.id=$1 AND a.user_id=$2',[id,uid]);
+ const q=await db.query('SELECT a.id,a.status,a.application_url,COALESCE(j.source_url,l.canonical_url) AS source_url,COALESCE(j.title,l.title) AS title,COALESCE(j.company,l.company) AS company FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id LEFT JOIN linkedin_job_intakes l ON l.id=a.linkedin_intake_id AND l.user_id=a.user_id WHERE a.id=$1 AND a.user_id=$2',[id,uid]);
  if(!q.rows.length)return res.status(404).json({error:'Application not found.'});
  const app=q.rows[0],provider=classifyProvider(app.application_url||app.source_url);
  if(!provider.ok)return res.status(422).json({error:provider.error,automation:'unsupported'});

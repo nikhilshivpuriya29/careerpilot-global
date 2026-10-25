@@ -7,11 +7,23 @@ function dateOrNull(v){if(v==null||v==='')return null;if(typeof v!=='string'||!/
 export default async function(req,res){
  const uid=String(req.user.id),b=req.body||{};
  if(req.method==='GET'){
-  const r=await db.query('SELECT a.id,a.job_id,a.status,a.resume_version,a.cover_letter,a.application_url,a.applied_at,a.next_action,a.next_action_at,a.notes,a.created_at,a.updated_at,j.title,j.company,j.location,j.country,j.source_url FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id WHERE a.user_id=$1 ORDER BY a.updated_at DESC LIMIT 200',[uid]);
+  const r=await db.query("SELECT a.id,a.job_id,a.linkedin_intake_id,a.status,a.resume_version,a.cover_letter,a.application_url,a.applied_at,a.next_action,a.next_action_at,a.notes,a.created_at,a.updated_at,COALESCE(j.title,l.title) AS title,COALESCE(j.company,l.company) AS company,COALESCE(j.location,l.location) AS location,j.country,COALESCE(j.source_url,l.canonical_url) AS source_url,COALESCE(j.description,l.description) AS description,COALESCE(j.source_name,'LinkedIn manual intake') AS source_name FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id LEFT JOIN linkedin_job_intakes l ON l.id=a.linkedin_intake_id AND l.user_id=a.user_id WHERE a.user_id=$1 ORDER BY a.updated_at DESC LIMIT 200",[uid]);
   return res.json({applications:r.rows});
  }
  try{
   if(req.method==='POST'){
+   if(b.linkedin_intake_id!==undefined){
+    const intakeId=Number(b.linkedin_intake_id);
+    if(!Number.isSafeInteger(intakeId)||intakeId<1)return res.status(400).json({error:'A valid linkedin_intake_id is required.'});
+    const intake=await db.query('SELECT id,canonical_url FROM linkedin_job_intakes WHERE id=$1 AND user_id=$2',[intakeId,uid]);
+    if(!intake.rows.length)return res.status(404).json({error:'Saved LinkedIn job not found.'});
+    const existing=await db.query('SELECT id,status,job_id,linkedin_intake_id,application_url FROM applications WHERE user_id=$1 AND linkedin_intake_id=$2',[uid,intakeId]);
+    if(existing.rows.length)return res.json({application:existing.rows[0],ok:true,already_tracked:true});
+    const created=await db.query("INSERT INTO applications(user_id,linkedin_intake_id,status,application_url,notes) VALUES($1,$2,'saved',$3,$4) ON CONFLICT DO NOTHING RETURNING id,status,job_id,linkedin_intake_id,application_url",[uid,intakeId,intake.rows[0].canonical_url,txt(b.notes,2000,'notes')]);
+    if(created.rows.length)return res.status(201).json({application:created.rows[0],ok:true});
+    const raced=await db.query('SELECT id,status,job_id,linkedin_intake_id,application_url FROM applications WHERE user_id=$1 AND linkedin_intake_id=$2',[uid,intakeId]);
+    return res.json({application:raced.rows[0]||null,ok:true,already_tracked:true});
+   }
    const id=Number(b.job_id);
    if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'A valid job_id is required.'});
    const job=await db.query('SELECT id,source_url FROM job_leads WHERE id=$1 AND active=true',[id]);
