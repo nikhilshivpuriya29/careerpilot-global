@@ -14,6 +14,7 @@ Every new automation capability must include deterministic unit tests, positive 
 - Admin-only GET /api/quality/self-test: executes deterministic guardrail and field-mapping safety tests.
 - Authenticated POST /api/applications/map-fields: checks application ownership and the saved profile, returns bounded field suggestions only, and never fills the remote form or submits an application. Sensitive/legal questions, CAPTCHA, consent controls and file uploads remain manual.
 - Per-user minute-window rate limits on expensive ATS inspection, field mapping, AI package/review/submission actions, document uploads and manual job-discovery triggers. Email sign-in abuse protections are platform-owned and require separate platform verification.
+- AI-provider configuration failures are classified by a tested helper. Scheduled scoring now returns an explicit `503 needs_ai_configuration` instead of a misleading successful run when the provider key is missing; it does not log candidate data.
 
 ## Submission adapter status
 - `api/applications/submit.js` intentionally has no live adapters. It performs a fresh server-side package review, requires explicit approval, and records `needs_manual_action` instead of claiming a submission.

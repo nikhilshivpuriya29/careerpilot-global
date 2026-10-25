@@ -1,4 +1,5 @@
 import { ai, db } from 'hatchable';
+import { isAiProviderConfigurationError } from '../../lib/ai-availability.js';
 export const access='scheduler';
 export const methods=['POST'];
 export default async function(req,res){
@@ -14,7 +15,12 @@ export default async function(req,res){
     const clamp=x=>Math.max(0,Math.min(100,Number(x)||0));
     await db.query('INSERT INTO job_matches(user_id,job_id,fit_score,visa_score,salary_score,match_reasons,risk_flags) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb) ON CONFLICT(user_id,job_id) DO NOTHING',[p.user_id,j.id,clamp(d.fit_score),clamp(d.visa_score),clamp(d.salary_score),JSON.stringify(Array.isArray(d.match_reasons)?d.match_reasons:[]),JSON.stringify(Array.isArray(d.risk_flags)?d.risk_flags:[])]);
     scored++;
-   }catch(e){errors++}
+   }catch(e){
+    if(isAiProviderConfigurationError(e)){
+     return res.status(503).json({ok:false,status:'needs_ai_configuration',users:users.rows.length,scored,skipped,errors,remainingWorkWillBePickedUpOnNextRun:true,message:'Job discovery succeeded, but match scoring is paused until the Hatchable AI provider is configured. No candidate data was logged.'});
+    }
+    errors++;
+   }
   }
   skipped+=Math.max(0,5-jobs.rows.length);
  }
