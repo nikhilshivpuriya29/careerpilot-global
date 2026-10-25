@@ -36,6 +36,19 @@ write = "own"
 read = "own"
 write = "own"
 
+[db.tables.linkedin_job_intakes]
+read = "own"
+write = "own"
+
+[db.tables.linkedin_scraper_preferences]
+read = "own"
+write = "own"
+
+# Readable to the server, writable only by trusted project members.
+[db.tables.linkedin_scraper_control]
+read = "public"
+write = "member"
+
 [db.tables.user_action_limits]
 read = "own"
 write = "own"
@@ -53,6 +66,8 @@ description = "Adzuna API application ID for global job discovery. Add in Hatcha
 name = "ADZUNA_APP_KEY"
 required = true
 description = "Adzuna API key for global job discovery. Add in Hatchable project Setup; never place the value in source code."
+
+# AI provider credentials are configured in the Hatchable AI settings, not as ordinary app secrets.
 
 [[cron]]
 path = "/api/jobs/daily-discovery"

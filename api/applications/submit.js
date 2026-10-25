@@ -11,7 +11,7 @@ export default async function(req,res){
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:'Valid application_id required.'});
  const limit=await enforceUserRateLimit(db,uid,'submit-application',3);if(!limit.allowed)return res.status(429).json({error:'Submission attempt rate limit reached. Retry in the next minute.',retry_after_seconds:limit.retryAfterSeconds});
  if(!approved)return res.status(400).json({error:'Explicit approval is required before attempting submission.'});
- const q=await db.query('SELECT a.id,a.status,a.resume_version,a.cover_letter,a.application_url,a.notes,j.source_name,j.source_url,j.metadata,j.title,j.company,j.country,j.description FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id WHERE a.id=$1 AND a.user_id=$2',[id,uid]);
+ const q=await db.query("SELECT a.id,a.status,a.resume_version,a.cover_letter,a.application_url,a.notes,COALESCE(j.source_name,'LinkedIn manual intake') AS source_name,COALESCE(j.source_url,l.canonical_url) AS source_url,j.metadata,COALESCE(j.title,l.title) AS title,COALESCE(j.company,l.company) AS company,COALESCE(j.country,l.location) AS country,COALESCE(j.description,l.description) AS description FROM applications a LEFT JOIN job_leads j ON j.id=a.job_id LEFT JOIN linkedin_job_intakes l ON l.id=a.linkedin_intake_id AND l.user_id=a.user_id WHERE a.id=$1 AND a.user_id=$2 AND (j.id IS NOT NULL OR l.id IS NOT NULL)",[id,uid]);
  if(!q.rows.length)return res.status(404).json({error:'Application not found.'});
  const a=q.rows[0];
  if(!a.resume_version||!a.cover_letter)return res.status(409).json({error:'Prepare the application package first.'});
