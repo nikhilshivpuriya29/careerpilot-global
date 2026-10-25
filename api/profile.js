@@ -24,11 +24,12 @@ export default async function(req,res) {
   if (!b || typeof b !== 'object' || Array.isArray(b)) return res.status(400).json({error:'A JSON object is required.'});
   const profile=(b.profile&&typeof b.profile==='object'&&!Array.isArray(b.profile))?b.profile:{};
   const safeProfile={};
-  for (const key of ['target_roles','locations','seniority','skills','certifications','industries','remote_preference','salary_currency','salary_period','work_preferences']) {
+  const allowedProfileFields=['name','headline','company','role','target_roles','locations','seniority','skills','certifications','industries','remote_preference','salary_currency','salary_period','work_preferences','education','graduation','currentLocation','experience','mobility','constraints'];
+  for (const key of allowedProfileFields) {
     if (profile[key] == null) continue;
     const val=profile[key];
     if (Array.isArray(val)) safeProfile[key]=val.slice(0,40).map(x=>text(x,200,key));
-    else if (typeof val==='string'||typeof val==='number'||typeof val==='boolean') safeProfile[key]=text(val,1000,key);
+    else if (typeof val==='string'||typeof val==='number'||typeof val==='boolean') safeProfile[key]=text(val,key==='experience'?5000:1000,key);
     else return res.status(400).json({error:'Unsupported profile field type: '+key});
   }
   const countries=Array.isArray(b.preferred_countries)?[...new Set(b.preferred_countries.slice(0,40).map(x=>text(x,80,'preferred_countries')).filter(Boolean))]:[];
@@ -42,6 +43,10 @@ export default async function(req,res) {
   const r=await db.query('INSERT INTO candidate_profiles(user_id,profile_json,resume_text,work_auth,preferred_countries,target_salary,notice_period,updated_at) VALUES($1,$2::jsonb,$3,$4,$5::jsonb,$6,$7,now()) ON CONFLICT(user_id) DO UPDATE SET profile_json=EXCLUDED.profile_json,resume_text=EXCLUDED.resume_text,work_auth=EXCLUDED.work_auth,preferred_countries=EXCLUDED.preferred_countries,target_salary=EXCLUDED.target_salary,notice_period=EXCLUDED.notice_period,updated_at=now() RETURNING profile_json,resume_text,work_auth,preferred_countries,target_salary,notice_period,updated_at',[uid,JSON.stringify(safeProfile),resume,workAuth,JSON.stringify(countries),salary,notice]);
   return res.json({profile:r.rows[0]});
  } catch(e) {
-  return res.status(400).json({error:e instanceof Error?e.message:'Invalid profile input.'});
+  const message=e instanceof Error?e.message:'';
+  const isValidation=/must be text|exceeds the maximum length|Unsupported profile field type|Preferred countries contain|Unsupported work authorization|A JSON object is required|Profile data is too large/i.test(message);
+  if(isValidation) return res.status(400).json({error:message});
+  console.error('candidate profile write failed');
+  return res.status(500).json({error:'Could not save profile. Please retry.'});
  }
 }

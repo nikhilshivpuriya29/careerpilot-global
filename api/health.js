@@ -1,11 +1,6 @@
-export const access = "public";
+export const access = "user";
 export const methods = ["GET"];
 export default async function (req, res) {
-  res.json({
-    ok: true,
-    app: "CareerPilot",
-    version: "1.0",
-    features: ["job-search-links", "visa-aware-filters", "resume-draft", "application-tracker", "profile-editor"],
-    note: "Job entries are starter search leads, not verified live vacancies."
-  });
+  // Private health response: expose no feature inventory or internal configuration.
+  res.json({ ok: true, app: "CareerPilot" });
 }
