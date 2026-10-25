@@ -1,8 +1,10 @@
 import { ai, db } from 'hatchable';
+import { enforceUserRateLimit } from '../lib/rate-limits.js';
 export const access='user';
 export const methods=['POST'];
 export default async function(req,res){
  const uid=String(req.user.id);
+ const limit=await enforceUserRateLimit(db,uid,'prepare-application',6);if(!limit.allowed)return res.status(429).json({error:'Resume tailoring rate limit reached. Retry in the next minute.',retry_after_seconds:limit.retryAfterSeconds});
  const b=req.body||{};
  const description=String(b.description||'').trim();
  const title=String(b.job_title||'').slice(0,180);

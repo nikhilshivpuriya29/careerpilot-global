@@ -35,7 +35,15 @@ export default async function(req,res){
   const next=b.next_action===undefined?old.next_action:txt(b.next_action,500,'next_action');
   const nextAt=b.next_action_at===undefined?old.next_action_at:dateOrNull(b.next_action_at);
   const notes=b.notes===undefined?old.notes:txt(b.notes,5000,'notes');
+  const packageChanged=resume!==old.resume_version||letter!==old.cover_letter;
   const r=await db.query("UPDATE applications SET status=$3,resume_version=$4,cover_letter=$5,application_url=$6,next_action=$7,next_action_at=$8,notes=$9,applied_at=CASE WHEN $3='applied' AND applied_at IS NULL THEN now() ELSE applied_at END,updated_at=now() WHERE id=$1 AND user_id=$2 RETURNING id,status,updated_at",[id,uid,status,resume,letter,url,next,nextAt,notes]);
+  if(packageChanged) await db.query('DELETE FROM application_reviews WHERE application_id=$1 AND user_id=$2',[id,uid]);
   return res.json({application:r.rows[0]});
- }catch(e){return res.status(400).json({error:e instanceof Error?e.message:'Invalid application input.'});}
+ }catch(e){
+  const message=e instanceof Error?e.message:'';
+  const isValidation=/must be text|is too long|must be a valid ISO date|Unsupported application status|Application URL must be HTTPS|valid ISO date/i.test(message);
+  if(isValidation)return res.status(400).json({error:message});
+  console.error('application update failed');
+  return res.status(500).json({error:'Could not update application. Please retry.'});
+ }
 }

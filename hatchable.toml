@@ -11,6 +11,11 @@ description = "AI-powered job relevance scoring, job-description analysis, and f
 read = "own"
 write = "own"
 
+# Shared job catalogue: visible to users, writable only by trusted platform collaborators/scheduled ingestion.
+[db.tables.job_leads]
+read = "public"
+write = "member"
+
 [db.tables.applications]
 read = "own"
 write = "own"
@@ -20,6 +25,18 @@ read = "own"
 write = "own"
 
 [db.tables.submission_attempts]
+read = "own"
+write = "own"
+
+[db.tables.application_reviews]
+read = "own"
+write = "own"
+
+[db.tables.candidate_documents]
+read = "own"
+write = "own"
+
+[db.tables.user_action_limits]
 read = "own"
 write = "own"
 
