@@ -102,3 +102,14 @@ Search separately for Salesforce DevOps/Release Engineer, Platform Developer, Om
 ## 13. Responsible use
 
 Users remain responsible for truthful applications, platform terms, privacy and immigration checks. Do not upload another person's resume without permission, expose secrets, or circumvent access controls.
+
+## Greenhouse application assistance
+
+1. Save a real job in the Application tracker and prepare its AI-tailored resume and cover letter from the verified source resume.
+2. Run the independent AI review. Field filling is blocked unless the current review verdict is `ready`.
+3. Open **Inspect ATS form** for a supported Greenhouse job, then choose **Suggest field mappings**.
+4. Review each suggestion and tick only the fields that should be filled. CareerPilot re-derives every value from the signed-in account profile on the server; it does not trust values supplied by the browser.
+5. Choose **Fill selected approved fields** and confirm the action. The executor fills only selected, safe text/email/telephone/URL fields.
+6. Review the live application form yourself and submit manually.
+
+Legal/work-authorization, sponsorship, salary, demographic, consent, password, CAPTCHA and other sensitive questions are never auto-answered. File uploads remain manual. CareerPilot does not solve CAPTCHA, click the final Submit button, or claim that an application was submitted. The first browser executor release is limited to Greenhouse; other ATS providers remain inspection/manual handoff until their own adapters are tested.
