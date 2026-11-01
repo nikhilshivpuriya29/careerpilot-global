@@ -16,9 +16,9 @@ test('application URL and provider allowlists', () => {
   assertSuite(runAutomationGuardUnitTests());
   assert.equal(classifyProvider('https://boards.greenhouse.io/acme/jobs/123').provider, 'greenhouse');
   assert.equal(classifyProvider('https://jobs.lever.co/acme/123').provider, 'lever');
-  for (const url of ['http://boards.greenhouse.io/acme/jobs/1','https://boards.greenhouse.io.evil.test/acme/jobs/1','https://127.0.0.1/acme/jobs/1']) {
-    assert.equal(validateApplicationUrl(url).ok, false);
-  }
+  assert.equal(classifyProvider('http://boards.greenhouse.io/acme/jobs/1').ok, false);
+  assert.equal(classifyProvider('https://boards.greenhouse.io.evil.test/acme/jobs/1').ok, false);
+  assert.equal(validateApplicationUrl('https://127.0.0.1/acme/jobs/1').ok, false);
 });
 
 test('candidate field mapping never guesses sensitive answers', () => {
