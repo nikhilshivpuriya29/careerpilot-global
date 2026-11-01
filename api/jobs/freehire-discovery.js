@@ -1,4 +1,5 @@
 import { db } from 'hatchable';
+import { extractVisaEvidence } from '../../lib/visa-evidence.js';
 export const access = 'scheduler';
 export const methods = ['POST'];
 
@@ -21,12 +22,6 @@ function salaryText(job) {
     ? fmt(e.salary_min)+'–'+fmt(e.salary_max)
     : fmt(e.salary_min ?? e.salary_max);
   return [currency, range, period ? '/'+period : ''].filter(Boolean).join(' ');
-}
-function visaEvidence(text) {
-  const s = String(text || '').toLowerCase();
-  if (/(visa sponsorship available|we sponsor (a |the )?visa|sponsorship (is )?available|will sponsor (a |the )?visa|visa sponsorship provided)/i.test(s)) return 'confirmed';
-  if (/(visa sponsorship|work visa sponsorship|relocation assistance|skilled worker visa|immigration support|work permit support)/i.test(s)) return 'possible';
-  return 'unknown';
 }
 async function fetchSearch(query, country) {
   const params = new URLSearchParams({q:query,limit:'3',offset:'0',countries:country,description_format:'text'});
@@ -62,20 +57,21 @@ export default async function(req,res) {
           const description=clean(j.description,12000);
           const company=clean(j.company,300);
           const location=clean(j.location||result.task.country,500);
-          const evidence=visaEvidence(title+'\n'+description);
+          const visa=extractVisaEvidence({title,description,sourceUrl,provider:'FreeHire'});
+          const evidence=visa.status;
           const salary=salaryText(j);
           const meta={
             provider:'freehire',provider_id:slug,source:clean(j.source,100),
             company_slug:clean(j.company_slug,200),skills:Array.isArray(j.skills)?j.skills.slice(0,80):[],
             countries:Array.isArray(j.countries)?j.countries:[],regions:Array.isArray(j.regions)?j.regions:[],
             work_mode:clean(j.work_mode,40),posted_at:clean(j.posted_at,80),
-            query:result.task.query,requested_country:result.task.country,
+            query:result.task.query,requested_country:result.task.country,visa_evidence:visa,
             enrichment:j.enrichment&&typeof j.enrichment==='object'?j.enrichment:{}
           };
           await db.query(
             "INSERT INTO job_leads(source_key,title,company,location,country,source_url,description,salary_text,visa_evidence,visa_notes,job_type,active,source_name,metadata,first_seen_at,last_seen_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,'FreeHire',$12::jsonb,now(),now()) ON CONFLICT(source_key) DO UPDATE SET title=EXCLUDED.title,company=EXCLUDED.company,location=EXCLUDED.location,country=EXCLUDED.country,source_url=EXCLUDED.source_url,description=EXCLUDED.description,salary_text=EXCLUDED.salary_text,visa_evidence=EXCLUDED.visa_evidence,visa_notes=EXCLUDED.visa_notes,job_type=EXCLUDED.job_type,active=true,metadata=EXCLUDED.metadata,last_seen_at=now()",
             ['freehire:'+slug,title,company,location,COUNTRY_NAMES[result.task.country]||result.task.country,sourceUrl,description,salary,evidence,
-             evidence==='confirmed'?'Listing text contains explicit visa-sponsorship wording; verify directly with employer and official immigration sources.':evidence==='possible'?'Listing text contains a possible sponsorship or relocation signal; verify directly.':'No explicit sponsorship evidence detected; unknown does not mean sponsorship is unavailable.',
+             visa.notes,
              clean((j.enrichment||{}).employment_type||j.work_mode||'',100),JSON.stringify(meta)]
           );
           upserted++;

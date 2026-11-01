@@ -1,4 +1,5 @@
 import { db, config } from 'hatchable';
+import { extractVisaEvidence } from '../../lib/visa-evidence.js';
 export const access = 'scheduler';
 export const methods = ['POST'];
 
@@ -7,23 +8,20 @@ const COUNTRIES = [
   { code:'ca', name:'Canada' }, { code:'gb', name:'United Kingdom' },
   { code:'nl', name:'Netherlands' }, { code:'ie', name:'Ireland' },
   { code:'de', name:'Germany' }, { code:'nz', name:'New Zealand' },
-  { code:'us', name:'United States' }, { code:'sg', name:'Singapore' }
+  { code:'us', name:'United States' }, { code:'sg', name:'Singapore' },
+  { code:'fr', name:'France' }, { code:'es', name:'Spain' }, { code:'it', name:'Italy' },
+  { code:'ch', name:'Switzerland' }, { code:'be', name:'Belgium' }, { code:'at', name:'Austria' },
+  { code:'pl', name:'Poland' }, { code:'za', name:'South Africa' }
 ];
 const QUERIES = [
   'Salesforce DevOps',
   'Salesforce Developer OmniStudio',
   'Salesforce Platform Engineer'
 ];
-function visaEvidence(text) {
-  const s = String(text || '').toLowerCase();
-  if (/(visa sponsorship available|we sponsor (a |the )?visa|sponsorship (is )?available|will sponsor (a |the )?visa|visa sponsorship provided)/i.test(s)) return 'confirmed';
-  if (/(visa sponsorship|work visa sponsorship|relocation assistance|skilled worker visa|immigration support)/i.test(s)) return 'possible';
-  return 'unknown';
-}
 function salaryText(j) {
   if (j.salary_min == null && j.salary_max == null) return '';
   const fmt = n => Math.round(Number(n)).toLocaleString('en-US');
-  const currency = ({in:'INR',au:'AUD',ca:'CAD',gb:'GBP',nl:'EUR',ie:'EUR',de:'EUR',nz:'NZD',us:'USD',sg:'SGD'})[j.__country] || '';
+  const currency = ({in:'INR',au:'AUD',ca:'CAD',gb:'GBP',nl:'EUR',ie:'EUR',de:'EUR',nz:'NZD',us:'USD',sg:'SGD',fr:'EUR',es:'EUR',it:'EUR',ch:'CHF',be:'EUR',at:'EUR',pl:'PLN',za:'ZAR'})[j.__country] || '';
   if (j.salary_min != null && j.salary_max != null) return currency+' '+fmt(j.salary_min)+'–'+fmt(j.salary_max);
   return currency+' '+fmt(j.salary_min ?? j.salary_max);
 }
@@ -54,7 +52,7 @@ export default async function(req,res) {
           app_id:String(appId),app_key:String(appKey),what:task.query,results_per_page:'15','content-type':'application/json',sort_by:'date'
         }).toString();
         try {
-          const response = await fetch(url,{timeout_ms:12000});
+          const response = await fetch(url,{redirect:'error',signal:AbortSignal.timeout(12000)});
           if (!response.ok) { failedSources.push(task.country.code+':'+task.query+' (HTTP '+response.status+')'); return []; }
           const data = await response.json();
           return (Array.isArray(data.results)?data.results:[]).map(j=>({...j,__country:task.country.code,__countryName:task.country.name,__query:task.query}));
@@ -68,13 +66,14 @@ export default async function(req,res) {
         found++;
         const key='adzuna:'+j.__country+':'+String(j.id);
         const description=String(j.description||'').slice(0,12000);
-        const evidence=visaEvidence([j.title,description].join(' '));
+        const visa=extractVisaEvidence({title:j.title,description,sourceUrl:j.redirect_url,provider:'Adzuna'});
+        const evidence=visa.status;
         const loc=Array.isArray(j.location?.area)?j.location.area.join(', '):String(j.location?.display_name||j.__countryName);
         const salary=salaryText(j);
-        const metadata={provider:'adzuna',provider_id:String(j.id),query:j.__query,contract_type:j.contract_type||'',category:j.category?.label||'',created:j.created||'',redirect_url:j.redirect_url};
+        const metadata={provider:'adzuna',provider_id:String(j.id),query:j.__query,contract_type:j.contract_type||'',category:j.category?.label||'',created:j.created||'',redirect_url:j.redirect_url,visa_evidence:visa};
         const saved=await db.query(
           "INSERT INTO job_leads(source_key,title,company,location,country,source_url,description,salary_text,visa_evidence,visa_notes,job_type,active,source_name,metadata,first_seen_at,last_seen_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,'Adzuna',$12::jsonb,now(),now()) ON CONFLICT(source_key) DO UPDATE SET title=EXCLUDED.title,company=EXCLUDED.company,location=EXCLUDED.location,country=EXCLUDED.country,source_url=EXCLUDED.source_url,description=EXCLUDED.description,salary_text=EXCLUDED.salary_text,visa_evidence=EXCLUDED.visa_evidence,visa_notes=EXCLUDED.visa_notes,job_type=EXCLUDED.job_type,active=true,metadata=EXCLUDED.metadata,last_seen_at=now() RETURNING id",
-          [key,String(j.title).slice(0,500),String(j.company?.display_name||'').slice(0,300),loc.slice(0,500),j.__countryName,String(j.redirect_url).slice(0,2000),description,salary,evidence,evidence==='confirmed'?'Listing text explicitly mentions visa sponsorship; verify employer and current vacancy.':evidence==='possible'?'Listing text contains a sponsorship/relocation signal; verify directly.':'No explicit sponsorship evidence detected in retrieved listing text.',String(j.contract_type||'').slice(0,100),JSON.stringify(metadata)]
+          [key,String(j.title).slice(0,500),String(j.company?.display_name||'').slice(0,300),loc.slice(0,500),j.__countryName,String(j.redirect_url).slice(0,2000),description,salary,evidence,visa.notes,String(j.contract_type||'').slice(0,100),JSON.stringify(metadata)]
         );
         upserted += saved.rows.length?1:0;
       }

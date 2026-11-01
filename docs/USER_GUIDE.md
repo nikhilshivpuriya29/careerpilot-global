@@ -113,3 +113,15 @@ Users remain responsible for truthful applications, platform terms, privacy and 
 6. Review the live application form yourself and submit manually.
 
 Legal/work-authorization, sponsorship, salary, demographic, consent, password, CAPTCHA and other sensitive questions are never auto-answered. File uploads remain manual. CareerPilot does not solve CAPTCHA, click the final Submit button, or claim that an application was submitted. The first browser executor release is limited to Greenhouse; other ATS providers remain inspection/manual handoff until their own adapters are tested.
+
+## Sponsorship and visa evidence
+
+CareerPilot searches public listings from Adzuna across India, Australia, Canada, the United Kingdom, Netherlands, Ireland, Germany, New Zealand, the United States, Singapore, France, Spain, Italy, Switzerland, Belgium, Austria, Poland and South Africa. FreeHire discovery currently covers the original ten-country set.
+
+Each imported job stores a sponsorship signal together with a short text excerpt, listing URL, provider and check timestamp. The categories are deliberately conservative:
+
+- **Confirmed** means the listing text contains an explicit sponsorship claim. It is not independently verified with the employer or immigration authority and is not a visa guarantee.
+- **Possible** means the listing mentions sponsorship, work-permit or relocation support without an explicit commitment.
+- **Unknown** means there is no clear positive evidence, or the listing appears to say sponsorship is unavailable. Unknown must not be interpreted as either yes or no.
+
+Before applying, open the employer's original vacancy and ask the recruiter to confirm the eligible visa route, role/location coverage, sponsorship timing and any long-term residence pathway. CareerPilot does not infer permanent residence eligibility from a job listing.

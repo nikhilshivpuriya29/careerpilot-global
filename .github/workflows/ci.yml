@@ -1,0 +1,50 @@
+name: Cross-platform checks
+
+on:
+  push:
+    branches: [main, "feat/**", "feature/**", "fix/**", "chore/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Node unit tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run portable domain and security tests
+        run: npm test
+
+  postgres-isolation:
+    name: PostgreSQL row-isolation contract
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: careerpilot_test
+          POSTGRES_USER: careerpilot
+          POSTGRES_PASSWORD: careerpilot_ci_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U careerpilot -d careerpilot_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify two-user RLS isolation and forged-owner rejection
+        env:
+          PGPASSWORD: careerpilot_ci_only_password
+        run: psql -h localhost -U careerpilot -d careerpilot_test -v ON_ERROR_STOP=1 -f tests/security/two-user-isolation.sql
