@@ -1,0 +1,12 @@
+{
+  "name": "careerpilot-global",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js",
+    "test:security": "node --test tests/unit/*.test.js",
+    "test:isolation": "docker compose exec -T db psql -U careerpilot -d careerpilot_test -v ON_ERROR_STOP=1 -f /tests/security/two-user-isolation.sql"
+  }
+}
